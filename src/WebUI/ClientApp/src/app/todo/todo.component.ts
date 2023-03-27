@@ -5,7 +5,7 @@ import {
   TodoListsClient, TodoItemsClient,
   TodoListDto, TodoItemDto, PriorityLevelDto,
   CreateTodoListCommand, UpdateTodoListCommand,
-  CreateTodoItemCommand, UpdateTodoItemDetailCommand
+  CreateTodoItemCommand, UpdateTodoItemDetailCommand, IColourDto
 } from '../web-api-client';
 
 @Component({
@@ -20,6 +20,7 @@ export class TodoComponent implements OnInit {
   deleteCountDownInterval: any;
   lists: TodoListDto[];
   priorityLevels: PriorityLevelDto[];
+  colours: IColourDto[] = [];
   selectedList: TodoListDto;
   selectedItem: TodoItemDto;
   newListEditor: any = {};
@@ -32,7 +33,8 @@ export class TodoComponent implements OnInit {
     id: [null],
     listId: [null],
     priority: [''],
-    note: ['']
+    note: [''],
+    colour: ['']
   });
 
 
@@ -43,7 +45,19 @@ export class TodoComponent implements OnInit {
     private fb: FormBuilder
   ) { }
 
+  private setColours(): void {
+    this.colours.push({ name: 'White', code: '#FFFFFF' });
+    this.colours.push({ name: 'Red', code: '#FF5733' });
+    this.colours.push({ name: 'Orange', code: '#FFC300' });
+    this.colours.push({ name: 'Yellow', code: '#FFFF66' });
+    this.colours.push({ name: 'Green', code: '#CCFF99' });
+    this.colours.push({ name: 'Blue', code: '#6666FF' });
+    this.colours.push({ name: 'Purple', code: '#9966CC' });
+    this.colours.push({ name: 'Grey', code: '#999999' });
+  }
+
   ngOnInit(): void {
+    this.setColours();
     this.listsClient.get().subscribe(
       result => {
         this.lists = result.lists;
@@ -148,6 +162,7 @@ export class TodoComponent implements OnInit {
 
   updateItemDetails(): void {
     const item = new UpdateTodoItemDetailCommand(this.itemDetailsFormGroup.value);
+    console.log(item);
     this.itemsClient.updateItemDetails(this.selectedItem.id, item).subscribe(
       () => {
         if (this.selectedItem.listId !== item.listId) {
@@ -163,6 +178,7 @@ export class TodoComponent implements OnInit {
 
         this.selectedItem.priority = item.priority;
         this.selectedItem.note = item.note;
+        this.selectedItem.colour = item.colour;
         this.itemDetailsModalRef.hide();
         this.itemDetailsFormGroup.reset();
       },
@@ -176,7 +192,8 @@ export class TodoComponent implements OnInit {
       listId: this.selectedList.id,
       priority: this.priorityLevels[0].value,
       title: '',
-      done: false
+      done: false,
+      colour: this.colours[0].code,
     } as TodoItemDto;
 
     this.selectedList.items.push(item);
