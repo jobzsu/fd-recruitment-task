@@ -17,7 +17,7 @@
       </div>
       <ul class="list-group">
         <li *ngFor="let list of lists; index as i" class="list-group-item"
-          [ngClass]="{ 'active': selectedList == list }" (click)="selectedList = list">
+          [ngClass]="{ 'active': selectedList == list }" (click)="updateSelectedList(list)">
           <div class="clearfix">
             <div class="float-start">
               {{ list.title }}
@@ -31,9 +31,20 @@
     </div>
     <div class="col-sm-8" *ngIf="selectedList">
       <div class="clearfix">
+        <h5>Filter by Tags</h5>
+        <tagify id="tagFilterId"
+                name="tagFilter"
+                inputClass="form-control mb-2"
+                [(ngModel)]="selectedListItemTags"
+                [ngModelOptions]="{standalone: true}"
+                (add)="onTagAddEvent($event)"
+                (remove)="onTagRemoveEvent($event)"></tagify>
+        <button class="btn btn-primary" type="button" (click)="updateSelectedListItems()">Reset Tag Filter Results <span class=""></span></button>
+      </div>
+      <div class="clearfix">
         <h2 class="float-start">{{ selectedList.title }}</h2>
         <button id="listOptions" class="btn btn-default float-end" title="List Options..."
-          (click)="showListOptionsModal(listOptionsModalTemplate)">
+                (click)="showListOptionsModal(listOptionsModalTemplate)">
           <i class="bi bi-three-dots-vertical"></i>
         </button>
       </div>
@@ -45,16 +56,16 @@
             </div>
             <div class="flex-fill">
               <input id="{{ 'itemTitle' + i }}" *ngIf="item == selectedItem" type="text"
-                class="form-control item-input-control" [(ngModel)]="item.title" (keyup.enter)="updateItem(item, true)"
-                (blur)="updateItem(item)" autofocus="autofocus" />
+                     class="form-control item-input-control" [(ngModel)]="item.title" (keyup.enter)="updateItem(item, true)"
+                     (blur)="updateItem(item)" autofocus="autofocus" />
               <div class="todo-item-title" *ngIf="item != selectedItem" [ngClass]="{ 'done-todo': item.done }"
-                (click)="editItem(item, 'itemTitle' + i)" class="form-control item-input-control">
+                   (click)="editItem(item, 'itemTitle' + i)" class="form-control item-input-control">
                 <span>{{ item.title }}</span>
               </div>
             </div>
             <div class="todo-item-commands">
               <button *ngIf="item.id != 0" (click)="showItemDetailsModal(itemDetailsModalTemplate, item)"
-                class="btn btn-default btn-xs" role="button">
+                      class="btn btn-default btn-xs" role="button">
                 <i class="bi bi-three-dots-vertical"></i>
               </button>
             </div>
@@ -128,10 +139,19 @@
         <textarea id="note" class="form-control" rows="3" formControlName="note"></textarea>
       </div>
       <div class="form-group">
-        <label for="priority">Item Background Colour</label>
+        <label for="colour">Background Colour</label>
         <select class="form-control" formControlName="colour">
           <option [ngValue]="colour.code" *ngFor="let colour of colours">{{ colour.name }}</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label for="tags">Tags</label>
+        <tagify id="selectedItemTagsId"
+                name="selectedItemTags"
+                inputClass="form-control"
+                [(ngModel)]="selectedItemTags"
+                [ngModelOptions]="{standalone: true}"
+                [settings]="tagifyerSettings"></tagify>
       </div>
     </form>
     <div *ngIf="debug">

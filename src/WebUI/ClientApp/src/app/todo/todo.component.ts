@@ -1,12 +1,15 @@
 import { Component, TemplateRef, OnInit } from '@angular/core';
 import { UntypedFormBuilder } from '@angular/forms';
 import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
+import Tagifyer from '../../helpers/tagifyer';
+
 import {
   TodoListsClient, TodoItemsClient,
   TodoListDto, TodoItemDto, PriorityLevelDto,
   CreateTodoListCommand, UpdateTodoListCommand,
   CreateTodoItemCommand, UpdateTodoItemDetailCommand, IColourDto
 } from '../web-api-client';
+
 
 @Component({
   selector: 'app-todo-component',
@@ -23,6 +26,8 @@ export class TodoComponent implements OnInit {
   colours: IColourDto[] = [];
   selectedList: TodoListDto;
   selectedItem: TodoItemDto;
+  selectedItemTags: any[] = [];
+  selectedListItemTags: any[] = [];
   newListEditor: any = {};
   listOptionsEditor: any = {};
   newListModalRef: BsModalRef;
@@ -34,8 +39,12 @@ export class TodoComponent implements OnInit {
     listId: [null],
     priority: [''],
     note: [''],
-    colour: ['']
+    colour: [''],
+    tags: ['']
   });
+  tagifyerSettings: any = Tagifyer.Settings();
+  ignoreOnAddOrRemoveTagEvent: boolean = true;
+  selectedListBaseItems?: TodoItemDto[];
 
 
   constructor(
@@ -64,6 +73,8 @@ export class TodoComponent implements OnInit {
         this.priorityLevels = result.priorityLevels;
         if (this.lists.length) {
           this.selectedList = this.lists[0];
+          this.selectedListBaseItems = [...this.selectedList.items];
+          this.resetSelectedListTags();
         }
       },
       error => console.error(error)
@@ -97,6 +108,7 @@ export class TodoComponent implements OnInit {
         list.id = result;
         this.lists.push(list);
         this.selectedList = list;
+        this.resetSelectedListTags();
         this.newListModalRef.hide();
         this.newListEditor = {};
       },
@@ -153,14 +165,96 @@ export class TodoComponent implements OnInit {
   showItemDetailsModal(template: TemplateRef<any>, item: TodoItemDto): void {
     this.selectedItem = item;
     this.itemDetailsFormGroup.patchValue(this.selectedItem);
-
+    this.parseStrToTag();
     this.itemDetailsModalRef = this.modalService.show(template);
     this.itemDetailsModalRef.onHidden.subscribe(() => {
         this.stopDeleteCountDown();
     });
   }
 
+  private parseStrToTag(): void {
+    this.selectedItemTags = [];
+    if (this.selectedItem != null && this.selectedItem.tags != null) {
+      this.selectedItem.tags.split(',').forEach(t => {
+        this.selectedItemTags = this.selectedItemTags.concat([{ value: t.trim() }]);
+      })
+    }
+  }
+
+  private parseTagsToStr(): any {
+    return this.selectedItemTags.length > 0 ?
+      this.selectedItemTags.map(t => t.value).join(',') : null;
+  }
+
+  onTagAddEvent(tag: any): void {
+    if (!this.ignoreOnAddOrRemoveTagEvent) {
+      if (this.selectedListBaseItems.length > 0) {
+        var searchTags: string[] = tag.tags.map(v => v.value);
+        var filteredItems: any[] = [];
+        this.selectedListBaseItems.forEach(i => {
+          if (i.tags != null && searchTags.some(st => i.tags.split(',').includes(st))) {
+            filteredItems.push(i);
+          }
+        });
+        this.selectedList.items = [...filteredItems];
+      }
+    }
+  }
+
+  onTagRemoveEvent(tags: any): void {
+    if (!this.ignoreOnAddOrRemoveTagEvent) {
+      if (tags.length === 0) {
+        this.selectedList.items = [...this.selectedListBaseItems];
+      } else {
+        var searchTags: string[] = tags.map(t => t.value);
+        var filteredItems: any[] = [];
+        this.selectedListBaseItems.forEach(i => {
+          if (i.tags != null && searchTags.every(st => i.tags.split(',').includes(st))) {
+            filteredItems.push(i);
+          }
+        });
+        this.selectedList.items = [...filteredItems];
+      }
+    }
+  }
+
+  private resetSelectedListTags(): void {
+
+    this.ignoreOnAddOrRemoveTagEvent = true;
+
+    this.selectedListItemTags = [];
+
+    if (this.selectedList.items.length > 0) {
+      this.selectedList.items.forEach(i => {
+        if (i.tags != null) {
+          i.tags.split(',').forEach(t => {
+            this.selectedListItemTags = this.selectedListItemTags.concat([{ value: t.trim().toLowerCase() }]);
+          });
+        }
+      });
+    }
+
+    setTimeout(() => {
+      this.ignoreOnAddOrRemoveTagEvent = false;
+    }, 500);
+  }
+
+  updateSelectedList(list: any): void {
+    this.selectedList = list;
+    this.selectedListBaseItems = [...this.selectedList.items];
+
+    this.resetSelectedListTags();
+  }
+
+  updateSelectedListItems(): void {
+    this.selectedList.items = [...this.selectedListBaseItems];
+
+    this.resetSelectedListTags();
+  }
+
   updateItemDetails(): void {
+    this.itemDetailsFormGroup.controls['tags'].setValue(this.parseTagsToStr());
+
     const item = new UpdateTodoItemDetailCommand(this.itemDetailsFormGroup.value);
     console.log(item);
     this.itemsClient.updateItemDetails(this.selectedItem.id, item).subscribe(
@@ -179,8 +273,11 @@ export class TodoComponent implements OnInit {
         this.selectedItem.priority = item.priority;
         this.selectedItem.note = item.note;
         this.selectedItem.colour = item.colour;
+        this.selectedItem.tags = item.tags;
         this.itemDetailsModalRef.hide();
         this.itemDetailsFormGroup.reset();
+
+        this.resetSelectedListTags();
       },
       error => console.error(error)
     );

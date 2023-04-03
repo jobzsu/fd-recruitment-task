@@ -855,6 +855,7 @@ export class UpdateTodoItemDetailCommand implements IUpdateTodoItemDetailCommand
     priority?: PriorityLevel;
     note?: string | undefined;
     colour?: string | undefined;
+    tags?: string | undefined;
 
     constructor(data?: IUpdateTodoItemDetailCommand) {
         if (data) {
@@ -872,6 +873,7 @@ export class UpdateTodoItemDetailCommand implements IUpdateTodoItemDetailCommand
             this.priority = _data["priority"];
             this.note = _data["note"];
             this.colour = _data["colour"];
+            this.tags = _data["tags"];
         }
     }
 
@@ -889,6 +891,7 @@ export class UpdateTodoItemDetailCommand implements IUpdateTodoItemDetailCommand
         data["priority"] = this.priority;
         data["note"] = this.note;
         data["colour"] = this.colour;
+        data["tags"] = this.tags;
         return data;
     }
 }
@@ -898,6 +901,8 @@ export interface IUpdateTodoItemDetailCommand {
     listId?: number;
     priority?: PriorityLevel;
     note?: string | undefined;
+    colour?: string | undefined;
+    tags?: string | undefined;
 }
 
 export enum PriorityLevel {
@@ -1067,6 +1072,7 @@ export class TodoItemDto implements ITodoItemDto {
     priority?: number;
     note?: string | undefined;
     colour?: string | undefined;
+    tags?: string | undefined;
 
     constructor(data?: ITodoItemDto) {
         if (data) {
@@ -1086,6 +1092,7 @@ export class TodoItemDto implements ITodoItemDto {
             this.priority = _data["priority"];
             this.note = _data["note"];
             this.colour = _data["colour"];
+            this.tags = _data["tags"];
         }
     }
 
@@ -1105,6 +1112,7 @@ export class TodoItemDto implements ITodoItemDto {
         data["priority"] = this.priority;
         data["note"] = this.note;
         data["colour"] = this.colour;
+        data["tags"] = this.tags;
         return data;
     }
 }
@@ -1117,6 +1125,7 @@ export interface ITodoItemDto {
     priority?: number;
     note?: string | undefined;
     colour?: string | undefined;
+    tags?: string | undefined;
 }
 
 export interface IColourDto {
