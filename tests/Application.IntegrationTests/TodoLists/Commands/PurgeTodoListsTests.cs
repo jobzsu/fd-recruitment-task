@@ -72,6 +72,6 @@ public class PurgeTodoListsTests : BaseTestFixture
 
         var count = await CountAsync<TodoList>();
 
-        count.Should().Be(0);
+        count.Should().Be(3);
     }
 }
