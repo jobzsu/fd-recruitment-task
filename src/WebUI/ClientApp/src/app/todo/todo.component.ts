@@ -108,6 +108,7 @@ export class TodoComponent implements OnInit {
         list.id = result;
         this.lists.push(list);
         this.selectedList = list;
+        this.selectedListBaseItems = [...list.items];
         this.resetSelectedListTags();
         this.newListModalRef.hide();
         this.newListEditor = {};
@@ -293,8 +294,13 @@ export class TodoComponent implements OnInit {
       colour: this.colours[0].code,
     } as TodoItemDto;
 
+    //this.selectedList.items.push(item);
+    //const index = this.selectedList.items.length - 1;
+    //this.editItem(item, 'itemTitle' + index);
+
+    this.selectedListBaseItems.push(item);
     this.selectedList.items.push(item);
-    const index = this.selectedList.items.length - 1;
+    const index = this.selectedListBaseItems.length - 1;
     this.editItem(item, 'itemTitle' + index);
   }
 
@@ -357,14 +363,20 @@ export class TodoComponent implements OnInit {
     }
 
     if (item.id === 0) {
-      const itemIndex = this.selectedList.items.indexOf(this.selectedItem);
-      this.selectedList.items.splice(itemIndex, 1);
+      //const itemIndex = this.selectedList.items.indexOf(this.selectedItem);
+      const itemIndex = this.selectedListBaseItems.indexOf(this.selectedItem);
+      this.selectedListBaseItems.splice(itemIndex, 1);
+      this.selectedList.items = [...this.selectedListBaseItems];
     } else {
       this.itemsClient.delete(item.id).subscribe(
-        () =>
-        (this.selectedList.items = this.selectedList.items.filter(
-          t => t.id !== item.id
-        )),
+        () => {
+          const itemIndex = this.selectedListBaseItems.indexOf(this.selectedItem);
+          this.selectedListBaseItems.splice(itemIndex, 1);
+          this.selectedList.items = [...this.selectedListBaseItems];
+        },
+        //(this.selectedList.items = this.selectedList.items.filter(
+        //  t => t.id !== item.id
+        //)),
         error => console.error(error)
       );
     }
