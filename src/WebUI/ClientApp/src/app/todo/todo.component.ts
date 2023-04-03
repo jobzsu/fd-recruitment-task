@@ -367,12 +367,14 @@ export class TodoComponent implements OnInit {
       const itemIndex = this.selectedListBaseItems.indexOf(this.selectedItem);
       this.selectedListBaseItems.splice(itemIndex, 1);
       this.selectedList.items = [...this.selectedListBaseItems];
+      this.resetSelectedListTags();
     } else {
       this.itemsClient.delete(item.id).subscribe(
         () => {
           const itemIndex = this.selectedListBaseItems.indexOf(this.selectedItem);
           this.selectedListBaseItems.splice(itemIndex, 1);
           this.selectedList.items = [...this.selectedListBaseItems];
+          this.resetSelectedListTags();
         },
         //(this.selectedList.items = this.selectedList.items.filter(
         //  t => t.id !== item.id
