@@ -210,7 +210,7 @@ export class TodoComponent implements OnInit {
         var searchTags: string[] = tags.map(t => t.value);
         var filteredItems: any[] = [];
         this.selectedListBaseItems.forEach(i => {
-          if (i.tags != null && searchTags.every(st => i.tags.split(',').includes(st))) {
+          if (i.tags != null && searchTags.some(st => i.tags.split(',').includes(st))) {
             filteredItems.push(i);
           }
         });
