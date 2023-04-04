@@ -38,7 +38,8 @@
                 [(ngModel)]="selectedListItemTags"
                 [ngModelOptions]="{standalone: true}"
                 (add)="onTagAddEvent($event)"
-                (remove)="onTagRemoveEvent($event)"></tagify>
+                (remove)="onTagRemoveEvent($event)"
+                [settings]="{placeholder: 'Press tab to add new tag'}"></tagify>
         <button class="btn btn-primary" type="button" (click)="updateSelectedListItems()">Reset Tag Filter Results <span class=""></span></button>
       </div>
       <div class="clearfix">
