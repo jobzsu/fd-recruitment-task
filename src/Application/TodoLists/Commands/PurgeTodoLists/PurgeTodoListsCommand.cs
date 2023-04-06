@@ -19,7 +19,7 @@ public class PurgeTodoListsCommandHandler : IRequestHandler<PurgeTodoListsComman
 
     public async Task<Unit> Handle(PurgeTodoListsCommand request, CancellationToken cancellationToken)
     {
-        _context.TodoLists.RemoveRange(_context.TodoLists);
+        _context.TodoLists.ToList().ForEach(t => t.IsDeleted = true);
 
         await _context.SaveChangesAsync(cancellationToken);
 

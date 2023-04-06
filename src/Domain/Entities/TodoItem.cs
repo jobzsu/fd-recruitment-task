@@ -27,5 +27,14 @@ public class TodoItem : BaseAuditableEntity
         }
     }
 
+    public Colour Colour { get; set; } = Colour.White;
+
+    /// <summary>
+    /// Comma delimited tags
+    /// </summary>
+    public string? Tags { get; set; }
+
+    public bool IsDeleted { get; set; }
+
     public TodoList List { get; set; } = null!;
 }
