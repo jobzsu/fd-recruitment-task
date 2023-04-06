@@ -30,6 +30,7 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/ngx-tagify/styles/tagify.scss",
               "src/styles.scss"
             ],
             "scripts": []
@@ -130,6 +131,5 @@
         }
       }
     }
-  },
-  "defaultProject": "Todo_App.WebUI"
+  }
 }

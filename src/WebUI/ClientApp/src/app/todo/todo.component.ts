@@ -1,12 +1,15 @@
 import { Component, TemplateRef, OnInit } from '@angular/core';
-import { FormBuilder } from '@angular/forms';
+import { UntypedFormBuilder } from '@angular/forms';
 import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
+import Tagifyer from '../../helpers/tagifyer';
+
 import {
   TodoListsClient, TodoItemsClient,
   TodoListDto, TodoItemDto, PriorityLevelDto,
   CreateTodoListCommand, UpdateTodoListCommand,
-  CreateTodoItemCommand, UpdateTodoItemDetailCommand
+  CreateTodoItemCommand, UpdateTodoItemDetailCommand, IColourDto
 } from '../web-api-client';
+
 
 @Component({
   selector: 'app-todo-component',
@@ -20,8 +23,11 @@ export class TodoComponent implements OnInit {
   deleteCountDownInterval: any;
   lists: TodoListDto[];
   priorityLevels: PriorityLevelDto[];
+  colours: IColourDto[] = [];
   selectedList: TodoListDto;
   selectedItem: TodoItemDto;
+  selectedItemTags: any[] = [];
+  selectedListItemTags: any[] = [];
   newListEditor: any = {};
   listOptionsEditor: any = {};
   newListModalRef: BsModalRef;
@@ -32,24 +38,43 @@ export class TodoComponent implements OnInit {
     id: [null],
     listId: [null],
     priority: [''],
-    note: ['']
+    note: [''],
+    colour: [''],
+    tags: ['']
   });
+  tagifyerSettings: any = Tagifyer.Settings();
+  ignoreOnAddOrRemoveTagEvent: boolean = true;
+  selectedListBaseItems?: TodoItemDto[];
 
 
   constructor(
     private listsClient: TodoListsClient,
     private itemsClient: TodoItemsClient,
     private modalService: BsModalService,
-    private fb: FormBuilder
+    private fb: UntypedFormBuilder
   ) { }
 
+  private setColours(): void {
+    this.colours.push({ name: 'White', code: '#FFFFFF' });
+    this.colours.push({ name: 'Red', code: '#FF5733' });
+    this.colours.push({ name: 'Orange', code: '#FFC300' });
+    this.colours.push({ name: 'Yellow', code: '#FFFF66' });
+    this.colours.push({ name: 'Green', code: '#CCFF99' });
+    this.colours.push({ name: 'Blue', code: '#6666FF' });
+    this.colours.push({ name: 'Purple', code: '#9966CC' });
+    this.colours.push({ name: 'Grey', code: '#999999' });
+  }
+
   ngOnInit(): void {
+    this.setColours();
     this.listsClient.get().subscribe(
       result => {
         this.lists = result.lists;
         this.priorityLevels = result.priorityLevels;
         if (this.lists.length) {
           this.selectedList = this.lists[0];
+          this.selectedListBaseItems = [...this.selectedList.items];
+          this.resetSelectedListTags();
         }
       },
       error => console.error(error)
@@ -83,6 +108,8 @@ export class TodoComponent implements OnInit {
         list.id = result;
         this.lists.push(list);
         this.selectedList = list;
+        this.selectedListBaseItems = [...list.items];
+        this.resetSelectedListTags();
         this.newListModalRef.hide();
         this.newListEditor = {};
       },
@@ -139,15 +166,98 @@ export class TodoComponent implements OnInit {
   showItemDetailsModal(template: TemplateRef<any>, item: TodoItemDto): void {
     this.selectedItem = item;
     this.itemDetailsFormGroup.patchValue(this.selectedItem);
-
+    this.parseStrToTag();
     this.itemDetailsModalRef = this.modalService.show(template);
     this.itemDetailsModalRef.onHidden.subscribe(() => {
         this.stopDeleteCountDown();
     });
   }
 
+  private parseStrToTag(): void {
+    this.selectedItemTags = [];
+    if (this.selectedItem != null && this.selectedItem.tags != null) {
+      this.selectedItem.tags.split(',').forEach(t => {
+        this.selectedItemTags = this.selectedItemTags.concat([{ value: t.trim() }]);
+      })
+    }
+  }
+
+  private parseTagsToStr(): any {
+    return this.selectedItemTags.length > 0 ?
+      this.selectedItemTags.map(t => t.value).join(',') : null;
+  }
+
+  onTagAddEvent(tag: any): void {
+    if (!this.ignoreOnAddOrRemoveTagEvent) {
+      if (this.selectedListBaseItems.length > 0) {
+        var searchTags: string[] = tag.tags.map(v => v.value);
+        var filteredItems: any[] = [];
+        this.selectedListBaseItems.forEach(i => {
+          if (i.tags != null && searchTags.some(st => i.tags.split(',').includes(st))) {
+            filteredItems.push(i);
+          }
+        });
+        this.selectedList.items = [...filteredItems];
+      }
+    }
+  }
+
+  onTagRemoveEvent(tags: any): void {
+    if (!this.ignoreOnAddOrRemoveTagEvent) {
+      if (tags.length === 0) {
+        this.selectedList.items = [...this.selectedListBaseItems];
+      } else {
+        var searchTags: string[] = tags.map(t => t.value);
+        var filteredItems: any[] = [];
+        this.selectedListBaseItems.forEach(i => {
+          if (i.tags != null && searchTags.some(st => i.tags.split(',').includes(st))) {
+            filteredItems.push(i);
+          }
+        });
+        this.selectedList.items = [...filteredItems];
+      }
+    }
+  }
+
+  private resetSelectedListTags(): void {
+
+    this.ignoreOnAddOrRemoveTagEvent = true;
+
+    this.selectedListItemTags = [];
+
+    if (this.selectedList.items.length > 0) {
+      this.selectedList.items.forEach(i => {
+        if (i.tags != null) {
+          i.tags.split(',').forEach(t => {
+            this.selectedListItemTags = this.selectedListItemTags.concat([{ value: t.trim().toLowerCase() }]);
+          });
+        }
+      });
+    }
+
+    setTimeout(() => {
+      this.ignoreOnAddOrRemoveTagEvent = false;
+    }, 500);
+  }
+
+  updateSelectedList(list: any): void {
+    this.selectedList = list;
+    this.selectedListBaseItems = [...this.selectedList.items];
+
+    this.resetSelectedListTags();
+  }
+
+  updateSelectedListItems(): void {
+    this.selectedList.items = [...this.selectedListBaseItems];
+
+    this.resetSelectedListTags();
+  }
+
   updateItemDetails(): void {
+    this.itemDetailsFormGroup.controls['tags'].setValue(this.parseTagsToStr());
+
     const item = new UpdateTodoItemDetailCommand(this.itemDetailsFormGroup.value);
+    console.log(item);
     this.itemsClient.updateItemDetails(this.selectedItem.id, item).subscribe(
       () => {
         if (this.selectedItem.listId !== item.listId) {
@@ -163,8 +273,12 @@ export class TodoComponent implements OnInit {
 
         this.selectedItem.priority = item.priority;
         this.selectedItem.note = item.note;
+        this.selectedItem.colour = item.colour;
+        this.selectedItem.tags = item.tags;
         this.itemDetailsModalRef.hide();
         this.itemDetailsFormGroup.reset();
+
+        this.resetSelectedListTags();
       },
       error => console.error(error)
     );
@@ -176,11 +290,17 @@ export class TodoComponent implements OnInit {
       listId: this.selectedList.id,
       priority: this.priorityLevels[0].value,
       title: '',
-      done: false
+      done: false,
+      colour: this.colours[0].code,
     } as TodoItemDto;
 
+    //this.selectedList.items.push(item);
+    //const index = this.selectedList.items.length - 1;
+    //this.editItem(item, 'itemTitle' + index);
+
+    this.selectedListBaseItems.push(item);
     this.selectedList.items.push(item);
-    const index = this.selectedList.items.length - 1;
+    const index = this.selectedListBaseItems.length - 1;
     this.editItem(item, 'itemTitle' + index);
   }
 
@@ -243,14 +363,20 @@ export class TodoComponent implements OnInit {
     }
 
     if (item.id === 0) {
-      const itemIndex = this.selectedList.items.indexOf(this.selectedItem);
-      this.selectedList.items.splice(itemIndex, 1);
+      //const itemIndex = this.selectedList.items.indexOf(this.selectedItem);
+      const itemIndex = this.selectedListBaseItems.indexOf(this.selectedItem);
+      this.selectedListBaseItems.splice(itemIndex, 1);
+      this.selectedList.items = [...this.selectedListBaseItems];
     } else {
       this.itemsClient.delete(item.id).subscribe(
-        () =>
-        (this.selectedList.items = this.selectedList.items.filter(
-          t => t.id !== item.id
-        )),
+        () => {
+          const itemIndex = this.selectedListBaseItems.indexOf(this.selectedItem);
+          this.selectedListBaseItems.splice(itemIndex, 1);
+          this.selectedList.items = [...this.selectedListBaseItems];
+        },
+        //(this.selectedList.items = this.selectedList.items.filter(
+        //  t => t.id !== item.id
+        //)),
         error => console.error(error)
       );
     }
